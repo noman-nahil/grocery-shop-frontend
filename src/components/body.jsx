@@ -2,21 +2,28 @@ import React, { useEffect, useState } from "react";
 
 import axios from "axios";
 
-const Body = () => {
+const Body = ({ updateCart }) => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [item, setItem] = useState([]);
+  const [error, setError] = useState("");
+  const [islLoading, setLoading] = useState(true);
+  const [cartConfirmation, setCartConfirmation] = useState(false);
+
   useEffect(() => {
     // Make a GET request to your server to fetch grocery products
     axios
-      .get("http://localhost:3000/product/")
+      .get("http://192.168.0.109:3000/product")
       .then((response) => {
-        console.log(response.data);
+        //console.log(response.data);
         setProducts(response.data);
+        setLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching data:", error);
+        setLoading(false);
+        setError(error.message);
+        console.error("Error fetching data:", error.message);
       });
   }, []);
   const searchHandle = (e) => {
@@ -26,15 +33,33 @@ const Body = () => {
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
   const toggleModal = () => {
     setIsOpen(!isOpen);
     setItem([]);
+    setCartConfirmation(false);
   };
+  const cartMessageShow = () => {
+    setIsOpen(false);
+    setCartConfirmation(true);
+    //console.log(item);
+    setTimeout(() => {
+      setCartConfirmation(false);
+    }, 1500);
+    cartItemCount();
+  };
+  const cartMessageHide = () => {
+    setCartConfirmation(false);
+    setItem([]);
+  };
+
   const modalHandle = (product) => {
     const selectedItem = product;
-
-    setIsOpen(!isOpen);
+    setIsOpen(true);
     setItem(selectedItem);
+  };
+  const cartItemCount = () => {
+    updateCart();
   };
 
   return (
@@ -46,41 +71,134 @@ const Body = () => {
         placeholder="Search..."
         onChange={searchHandle}
       />
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredProducts.map((product) => (
-          <div
-            className="max-w-sm  rounded overflow-hidden shadow-lg"
-            key={product.id}
-          >
-            <div className="h-fit">
-              <img
-                className="h-44 md:h-48 lg:h-52 xl:h-56  mx-auto"
-                src={product.link}
-              />
-            </div>
-            <div className="px-6 pt-4 pb-2  ">
-              <div className="flex">
-                <p className="font-bold w-1/2">{product.name}</p>
-                <button
-                  type="button"
-                  className="text-white bg-blue-700 hover:bg-blue-800  font-medium rounded-lg text-sm ml-auto  p-2 "
-                  onClick={() => modalHandle(product)}
-                >
-                  See more
-                </button>
+      <div>
+        {islLoading !== true ? (
+          error === "" ? (
+            filteredProducts.length !== 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredProducts.map((product) => (
+                  <div
+                    className="max-w-sm  rounded overflow-hidden shadow-lg"
+                    key={product.id}
+                  >
+                    <div className="h-fit">
+                      <img
+                        className="h-44 md:h-48 lg:h-52 xl:h-56  mx-auto"
+                        src={product.link}
+                      />
+                    </div>
+                    <div className="pr-2 md:px-6 pt-4 pb-2  ">
+                      <div className="flex">
+                        <p className="font-bold w-1/2 p-2">{product.name}</p>
+                        <button
+                          type="button"
+                          className="text-white bg-blue-700 hover:bg-blue-800  font-medium rounded-lg text-sm ml-auto  p-2  "
+                          onClick={() => modalHandle(product)}
+                        >
+                          See more
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <div className=" text-center md:text-xl font-bold  py-10 md:p-10">
+                Unfortunately, we currently don't have any products available at
+                the moment"
+              </div>
+            )
+          ) : (
+            <div className=" text-center md:text-xl font-bold  py-10 md:p-10">
+              {error}
+            </div>
+          )
+        ) : (
+          <div className="text-center">
+            <div role="status">
+              <svg
+                aria-hidden="true"
+                className="inline w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                viewBox="0 0 100 101"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                  fill="currentFill"
+                />
+              </svg>
+              <span className="sr-only">Loading...</span>
             </div>
           </div>
-        ))}
+        )}
       </div>
+      {cartConfirmation && (
+        <div className="fixed bottom-0 right-0 inset-y-1/4 md:inset-1/4 w-full h-fit md:w-2/4  p-8 md:p-0">
+          <div className="modal-content bg-white p-6 rounded-lg shadow-lg border border-2 ">
+            <div className="flex">
+              <div class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-green-500 rounded-lg">
+                <svg
+                  class="w-5 h-5"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                </svg>
+                <span class="sr-only">Check icon</span>
+              </div>
+              <h2 className="text-xl font-semibold mb-4">
+                {item.name} added to cart
+              </h2>
+              {/* <button
+                className=" bg-white text-lg text-black font-bold py-2 px-4 rounded ml-auto"
+                onClick={cartMessageHide}
+              >
+                X
+              </button> */}
+              <button
+                type="button"
+                className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 inline-flex items-center justify-center h-8 w-8 "
+                data-dismiss-target="#toast-success"
+                aria-label="Close"
+                onClick={cartMessageHide}
+              >
+                <span className="sr-only">Close</span>
+                <svg
+                  className="w-3 h-3"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 14 14"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokewidth-="2"
+                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isOpen && (
-        <div className="fixed inset-1/4   w-2/3  lg:w-2/4  h-full  ">
+        <div className="fixed bottom-0 right-0 inset-y-1/4 md:inset-1/4 w-full  md:w-2/4   p-8 md:p-0">
           <div className="modal-content bg-white p-6 rounded-lg shadow-lg border border-2 ">
             {/* <h2 className="text-xl font-semibold mb-4">{item.name}</h2> */}
             <div className="flex">
               <button
                 onClick={toggleModal}
-                className=" bg-white  text-black font-bold py-2 px-4 rounded ml-auto"
+                className=" bg-white text-lg text-black font-bold py-2 px-4 rounded ml-auto"
               >
                 X
               </button>
@@ -92,7 +210,7 @@ const Body = () => {
             <div className="px-6 pt-4 pb-2  ">
               <div className="flex">
                 <p className="font-bold w-1/2">{item.name}</p>
-                <p className="text-sm  hover:bg-blue-800  font-medium rounded-lg text-sm ml-auto  p-2 ">
+                <p className="text-sm    font-medium rounded-lg text-sm ml-auto  p-2 ">
                   Price : {item.price} $
                 </p>
               </div>
@@ -100,10 +218,10 @@ const Body = () => {
             <span className="">{item.description}</span>
             <div className="flex">
               <button
-                onClick={() => alert(item.name + " added in cart")}
+                onClick={cartMessageShow}
                 className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-auto"
               >
-                Add to cart
+                Place in Cart
               </button>
               <button
                 onClick={toggleModal}
