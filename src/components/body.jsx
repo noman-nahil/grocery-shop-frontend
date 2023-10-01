@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import axios from "axios";
+import Modal from "react-modal";
 
 const Body = ({ updateCart }) => {
   const [products, setProducts] = useState([]);
@@ -10,11 +11,12 @@ const Body = ({ updateCart }) => {
   const [error, setError] = useState("");
   const [islLoading, setLoading] = useState(true);
   const [cartConfirmation, setCartConfirmation] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     // Make a GET request to your server to fetch grocery products
     axios
-      .get("http://192.168.0.109:3000/product")
+      .get(process.env.REACT_APP_API)
       .then((response) => {
         //console.log(response.data);
         setProducts(response.data);
@@ -39,14 +41,27 @@ const Body = ({ updateCart }) => {
     setItem([]);
     setCartConfirmation(false);
   };
+
   const cartMessageShow = () => {
     setIsOpen(false);
     setCartConfirmation(true);
-    //console.log(item);
     setTimeout(() => {
       setCartConfirmation(false);
     }, 1500);
-    cartItemCount();
+
+    const cartList = JSON.parse(localStorage.getItem("cartItems")) || [];
+    const isInList = cartList.find((p) => p.id === item.id);
+    if (isInList) {
+      setMessage("Item is already in the cart");
+      console.log("Item is already in the cart");
+      console.log(cartList);
+    } else {
+      item.count = 1;
+      cartList.push(item);
+      localStorage.setItem("cartItems", JSON.stringify(cartList));
+      updateCart();
+      setMessage("Item added to the cart.");
+    }
   };
   const cartMessageHide = () => {
     setCartConfirmation(false);
@@ -57,9 +72,6 @@ const Body = ({ updateCart }) => {
     const selectedItem = product;
     setIsOpen(true);
     setItem(selectedItem);
-  };
-  const cartItemCount = () => {
-    updateCart();
   };
 
   return (
@@ -78,7 +90,7 @@ const Body = ({ updateCart }) => {
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredProducts.map((product) => (
                   <div
-                    className="max-w-sm  rounded overflow-hidden shadow-lg"
+                    className="max-w-sm  rounded overflow-hidden shadow-lg border border-2"
                     key={product.id}
                   >
                     <div className="h-fit">
@@ -153,9 +165,7 @@ const Body = ({ updateCart }) => {
                 </svg>
                 <span class="sr-only">Check icon</span>
               </div>
-              <h2 className="text-xl font-semibold mb-4">
-                {item.name} added to cart
-              </h2>
+              <h2 className="text-xl font-semibold mb-4">{message}</h2>
               {/* <button
                 className=" bg-white text-lg text-black font-bold py-2 px-4 rounded ml-auto"
                 onClick={cartMessageHide}
@@ -192,7 +202,12 @@ const Body = ({ updateCart }) => {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-0 right-0 inset-y-1/4 md:inset-1/4 w-full  md:w-2/4   p-8 md:p-0">
+        <Modal
+          isOpen={isOpen}
+          onRequestClose={toggleModal}
+          ariaHideApp={false}
+          className="fixed bottom-0 right-0 inset-y-1/4 md:inset-1/4 w-full  md:w-2/4   p-8 md:p-0"
+        >
           <div className="modal-content bg-white p-6 rounded-lg shadow-lg border border-2 ">
             {/* <h2 className="text-xl font-semibold mb-4">{item.name}</h2> */}
             <div className="flex">
@@ -231,7 +246,7 @@ const Body = ({ updateCart }) => {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
